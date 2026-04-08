@@ -7,3 +7,6 @@ VALUES (
     $1  -- email
 )
 RETURNING *;
+
+-- name: DeleteUsers :exec
+DELETE FROM users;
