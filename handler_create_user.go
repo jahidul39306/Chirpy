@@ -18,7 +18,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	type UserCreation struct {
-		Id        string `json:"id"`
+		ID        string `json:"id"`
 		CreatedAt string `json:"created_at"`
 		UpdatedAt string `json:"updated_at"`
 		Email     string `json:"email"`
@@ -26,7 +26,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 
 	user, err := cfg.dbQueries.CreateUser(r.Context(), params.Email)
 	userCreation := UserCreation{
-		Id:        user.ID.String(),
+		ID:        user.ID.String(),
 		CreatedAt: user.CreatedAt.Time.String(),
 		UpdatedAt: user.UpdatedAt.Time.String(),
 		Email:     user.Email,
