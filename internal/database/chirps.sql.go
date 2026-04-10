@@ -25,7 +25,7 @@ RETURNING id, created_at, updated_at, body, user_id
 
 type CreateChirpsParams struct {
 	Body   string
-	UserID uuid.NullUUID
+	UserID uuid.UUID
 }
 
 func (q *Queries) CreateChirps(ctx context.Context, arg CreateChirpsParams) (Chirp, error) {
