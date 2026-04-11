@@ -3,11 +3,14 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/jahidul39306/Chirpy/internal/database"
 )
 
 func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Email string `json:"email"`
+		HashedPassword string `json:"hashed_password"`
+		Email          string `json:"email"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -24,7 +27,10 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		Email     string `json:"email"`
 	}
 
-	user, err := cfg.dbQueries.CreateUser(r.Context(), params.Email)
+	user, err := cfg.dbQueries.CreateUser(r.Context(), database.CreateUserParams{
+		HashedPassword: params.HashedPassword,
+		Email:          params.Email,
+	})
 	userCreation := UserCreation{
 		ID:        user.ID.String(),
 		CreatedAt: user.CreatedAt.Time.String(),
