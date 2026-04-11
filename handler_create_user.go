@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/jahidul39306/Chirpy/internal/auth"
 	"github.com/jahidul39306/Chirpy/internal/database"
 )
 
 func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		HashedPassword string `json:"hashed_password"`
-		Email          string `json:"email"`
+		Password string `json:"password"`
+		Email    string `json:"email"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -20,6 +21,14 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		respondWithError(w, http.StatusInternalServerError, "Could not decode user parameter")
 		return
 	}
+
+	hashedPassword, err := auth.HashPassword(params.Password)
+
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Unable to hash password")
+		return
+	}
+
 	type UserCreation struct {
 		ID        string `json:"id"`
 		CreatedAt string `json:"created_at"`
@@ -28,7 +37,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 	}
 
 	user, err := cfg.dbQueries.CreateUser(r.Context(), database.CreateUserParams{
-		HashedPassword: params.HashedPassword,
+		HashedPassword: hashedPassword,
 		Email:          params.Email,
 	})
 	userCreation := UserCreation{
