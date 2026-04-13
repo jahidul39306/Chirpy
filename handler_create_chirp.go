@@ -11,6 +11,7 @@ import (
 	"slices"
 
 	"github.com/google/uuid"
+	"github.com/jahidul39306/Chirpy/internal/auth"
 	"github.com/jahidul39306/Chirpy/internal/database"
 )
 
@@ -23,6 +24,18 @@ type Chirp struct {
 }
 
 func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
+	token, err := auth.GetBearerToken(w.Header())
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	_, err = auth.ValidateJWT(token, cfg.secretKey)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
 	type parameters struct {
 		Body   string `json:"body"`
 		UserID string `json:"user_id"`
@@ -30,7 +43,7 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
-	err := decoder.Decode(&params)
+	err = decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Unable to decode params")
 		return
