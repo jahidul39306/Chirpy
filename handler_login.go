@@ -47,8 +47,6 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Authorization", "Bearer "+token)
-
 	type userInfo struct {
 		ID        string `json:"id"`
 		CreatedAt string `json:"created_at"`

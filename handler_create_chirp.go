@@ -10,7 +10,6 @@ import (
 
 	"slices"
 
-	"github.com/google/uuid"
 	"github.com/jahidul39306/Chirpy/internal/auth"
 	"github.com/jahidul39306/Chirpy/internal/database"
 )
@@ -24,26 +23,26 @@ type Chirp struct {
 }
 
 func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
-	token, err := auth.GetBearerToken(w.Header())
+	token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	_, err = auth.ValidateJWT(token, cfg.secretKey)
+	UserID, err := auth.ValidateJWT(token, cfg.secretKey)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
 	type parameters struct {
-		Body   string `json:"body"`
-		UserID string `json:"user_id"`
+		Body string `json:"body"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
 	err = decoder.Decode(&params)
+
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Unable to decode params")
 		return
@@ -55,15 +54,9 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	user_id, err := uuid.Parse(params.UserID)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid user_id")
-		return
-	}
-
 	chirp, err := cfg.dbQueries.CreateChirps(r.Context(), database.CreateChirpsParams{
 		Body:   new_text,
-		UserID: user_id,
+		UserID: UserID,
 	})
 	if err != nil {
 		log.Printf("Error creating chirp: %s", err)
