@@ -6,14 +6,13 @@ import (
 	"time"
 
 	"github.com/jahidul39306/Chirpy/internal/auth"
+	"github.com/jahidul39306/Chirpy/internal/database"
 )
 
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
-	const maxExpiry = 3600
 	type parameters struct {
-		Password         string `json:"password"`
-		Email            string `json:"email"`
-		ExpiresInSeconds int    `json:"expires_in_seconds"`
+		Password string `json:"password"`
+		Email    string `json:"email"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -23,10 +22,6 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Unable to decode parameters")
 		return
-	}
-
-	if params.ExpiresInSeconds == 0 || params.ExpiresInSeconds > maxExpiry {
-		params.ExpiresInSeconds = maxExpiry
 	}
 
 	user, err := cfg.dbQueries.GetUserByEmail(r.Context(), params.Email)
@@ -41,25 +36,33 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := auth.MakeJWT(user.ID, cfg.secretKey, time.Duration(params.ExpiresInSeconds)*time.Second)
+	token, err := auth.MakeJWT(user.ID, cfg.secretKey, time.Duration(60)*time.Second)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
+	refresh_token := auth.MakeRefreshToken()
+	_, err = cfg.dbQueries.CreateRefreshTokens(r.Context(), database.CreateRefreshTokensParams{
+		Token:  refresh_token,
+		UserID: user.ID,
+	})
+
 	type userInfo struct {
-		ID        string `json:"id"`
-		CreatedAt string `json:"created_at"`
-		UpdatedAt string `json:"updated_at"`
-		Email     string `json:"email"`
-		Token     string `json:"token"`
+		ID           string `json:"id"`
+		CreatedAt    string `json:"created_at"`
+		UpdatedAt    string `json:"updated_at"`
+		Email        string `json:"email"`
+		Token        string `json:"token"`
+		RefreshToken string `json:"refresh_token"`
 	}
 
 	respondWithJSON(w, http.StatusOK, userInfo{
-		ID:        user.ID.String(),
-		CreatedAt: user.CreatedAt.Time.String(),
-		UpdatedAt: user.UpdatedAt.Time.String(),
-		Email:     user.Email,
-		Token:     token,
+		ID:           user.ID.String(),
+		CreatedAt:    user.CreatedAt.Time.String(),
+		UpdatedAt:    user.UpdatedAt.Time.String(),
+		Email:        user.Email,
+		Token:        token,
+		RefreshToken: refresh_token,
 	})
 }

@@ -5,8 +5,14 @@ VALUES (
     NOW(),
     NOW(),
     $2, 
-    $3,
-    $4
+    NOW() + INTERVAL '60 days',
+    $3
 )
 RETURNING *;
+
+-- name: GetValidRefreshToken :one
+SELECT * FROM refresh_tokens
+WHERE token = $1
+  AND expires_at > NOW()
+  AND revoked_at IS NULL;
 

@@ -19,8 +19,8 @@ VALUES (
     NOW(),
     NOW(),
     $2, 
-    $3,
-    $4
+    NOW() + INTERVAL '60 days',
+    $3
 )
 RETURNING token, created_at, updated_at, user_id, expires_at, revoked_at
 `
@@ -28,17 +28,32 @@ RETURNING token, created_at, updated_at, user_id, expires_at, revoked_at
 type CreateRefreshTokensParams struct {
 	Token     string
 	UserID    uuid.UUID
-	ExpiresAt sql.NullTime
 	RevokedAt sql.NullTime
 }
 
 func (q *Queries) CreateRefreshTokens(ctx context.Context, arg CreateRefreshTokensParams) (RefreshToken, error) {
-	row := q.db.QueryRowContext(ctx, createRefreshTokens,
-		arg.Token,
-		arg.UserID,
-		arg.ExpiresAt,
-		arg.RevokedAt,
+	row := q.db.QueryRowContext(ctx, createRefreshTokens, arg.Token, arg.UserID, arg.RevokedAt)
+	var i RefreshToken
+	err := row.Scan(
+		&i.Token,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UserID,
+		&i.ExpiresAt,
+		&i.RevokedAt,
 	)
+	return i, err
+}
+
+const getValidRefreshToken = `-- name: GetValidRefreshToken :one
+SELECT token, created_at, updated_at, user_id, expires_at, revoked_at FROM refresh_tokens
+WHERE token = $1
+  AND expires_at > NOW()
+  AND revoked_at IS NULL
+`
+
+func (q *Queries) GetValidRefreshToken(ctx context.Context, token string) (RefreshToken, error) {
+	row := q.db.QueryRowContext(ctx, getValidRefreshToken, token)
 	var i RefreshToken
 	err := row.Scan(
 		&i.Token,
