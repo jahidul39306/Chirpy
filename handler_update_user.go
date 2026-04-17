@@ -51,15 +51,17 @@ func (cfg *apiConfig) handlerUpdateUser(w http.ResponseWriter, r *http.Request) 
 	}
 
 	type UserUpdate struct {
-		ID        string `json:"id"`
-		CreatedAt string `json:"created_at"`
-		UpdatedAt string `json:"updated_at"`
-		Email     string `json:"email"`
+		ID          string `json:"id"`
+		CreatedAt   string `json:"created_at"`
+		UpdatedAt   string `json:"updated_at"`
+		Email       string `json:"email"`
+		IsChirpyRed bool   `json:"is_chirpy_red"`
 	}
 	respondWithJSON(w, http.StatusOK, UserUpdate{
-		ID:        updatedUser.ID.String(),
-		Email:     updatedUser.Email,
-		CreatedAt: updatedUser.CreatedAt.Time.String(),
-		UpdatedAt: updatedUser.UpdatedAt.Time.String(),
+		ID:          updatedUser.ID.String(),
+		Email:       updatedUser.Email,
+		CreatedAt:   updatedUser.CreatedAt.Time.String(),
+		UpdatedAt:   updatedUser.UpdatedAt.Time.String(),
+		IsChirpyRed: updatedUser.IsChirpyRed,
 	})
 }

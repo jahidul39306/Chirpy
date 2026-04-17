@@ -4,28 +4,16 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/jahidul39306/Chirpy/internal/auth"
+	"github.com/google/uuid"
 )
 
-func (cfg *apiConfig) handlerPolkaWebhooks(w http.ResponseWriter, r *http.Request){
-	token, err := auth.GetBearerToken(r.Header)
-	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, err.Error())
-		return
-	}
-
-	UserID, err := auth.ValidateJWT(token, cfg.secretKey)
-	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, err.Error())
-		return
-	}
-	
+func (cfg *apiConfig) handlerPolkaWebhooks(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Event string `json:"event"`
-		Data struct {
+		Data  struct {
 			UserID string `json:"user_id"`
 		} `json:"data"`
-	} 
+	}
 
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
@@ -40,7 +28,13 @@ func (cfg *apiConfig) handlerPolkaWebhooks(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	_, err : cfg.dbQueries.UpdateToChirpyRedByID(r.Context(), UserID)
+	userID, err := uuid.Parse(params.Data.UserID)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	_, err = cfg.dbQueries.UpdateToChirpyRedByID(r.Context(), userID)
 	if err != nil {
 		respondWithError(w, http.StatusNotFound, err.Error())
 		return
