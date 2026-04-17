@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 )
@@ -20,7 +21,7 @@ VALUES (
     $1,  -- email
     $2 -- password
 )
-RETURNING id, created_at, updated_at, email, hashed_password
+RETURNING id, created_at, updated_at, email, hashed_password, is_chirpy_red
 `
 
 type CreateUserParams struct {
@@ -37,6 +38,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.UpdatedAt,
 		&i.Email,
 		&i.HashedPassword,
+		&i.IsChirpyRed,
 	)
 	return i, err
 }
@@ -56,8 +58,37 @@ FROM users
 WHERE email = $1
 `
 
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+type GetUserByEmailRow struct {
+	ID             uuid.UUID
+	CreatedAt      sql.NullTime
+	UpdatedAt      sql.NullTime
+	Email          string
+	HashedPassword string
+}
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
 	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	var i GetUserByEmailRow
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Email,
+		&i.HashedPassword,
+	)
+	return i, err
+}
+
+const updateToChirpyRedByID = `-- name: UpdateToChirpyRedByID :one
+UPDATE users
+SET
+    is_chirpy_red = TRUE
+WHERE id = $1
+RETURNING id, created_at, updated_at, email, hashed_password, is_chirpy_red
+`
+
+func (q *Queries) UpdateToChirpyRedByID(ctx context.Context, id uuid.UUID) (User, error) {
+	row := q.db.QueryRowContext(ctx, updateToChirpyRedByID, id)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -65,6 +96,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.UpdatedAt,
 		&i.Email,
 		&i.HashedPassword,
+		&i.IsChirpyRed,
 	)
 	return i, err
 }
@@ -76,7 +108,7 @@ SET
     hashed_password = $3,
     updated_at = NOW()
 WHERE id = $1
-RETURNING id, created_at, updated_at, email, hashed_password
+RETURNING id, created_at, updated_at, email, hashed_password, is_chirpy_red
 `
 
 type UpdateUserByIDParams struct {
@@ -94,6 +126,7 @@ func (q *Queries) UpdateUserByID(ctx context.Context, arg UpdateUserByIDParams) 
 		&i.UpdatedAt,
 		&i.Email,
 		&i.HashedPassword,
+		&i.IsChirpyRed,
 	)
 	return i, err
 }
